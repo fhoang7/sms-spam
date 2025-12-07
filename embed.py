@@ -18,6 +18,14 @@ data = data[['v1', 'v2']]
 data.columns = ['label', 'message']
 print(f"✓ Loaded {len(data)} messages")
 
+# Drop rows with missing messages or labels
+initial_count = len(data)
+data = data.dropna(subset=['message', 'label'])
+dropped_count = initial_count - len(data)
+if dropped_count > 0:
+    print(f"⚠ Dropped {dropped_count} rows with missing values")
+print(f"✓ Final dataset: {len(data)} messages")
+
 #%% Exploratory Data Analysis
 print("\n" + "="*70)
 print("EXPLORATORY DATA ANALYSIS")
@@ -61,13 +69,23 @@ display_sample_messages(data, n_samples=3)
 
 #%% Text Preprocessing
 print("\nPreprocessing text messages...")
+# Ensure message column is string type
+data['message'] = data['message'].astype(str)
 data['message_clean'] = data['message'].apply(preprocess_text)
-print("✓ Text preprocessing complete")
+
+# Remove any messages that became empty after cleaning
+before_filter = len(data)
+data = data[data['message_clean'].str.strip() != '']
+after_filter = len(data)
+if before_filter > after_filter:
+    print(f"⚠ Dropped {before_filter - after_filter} messages that became empty after preprocessing")
+
+print(f"✓ Text preprocessing complete ({len(data)} messages remain)")
 
 # Show preprocessing examples
 print("\nPreprocessing Examples:")
 print("-"*70)
-for i in range(3):
+for i in range(min(3, len(data))):
     print(f"\nOriginal: {data['message'].iloc[i][:100]}")
     print(f"Cleaned:  {data['message_clean'].iloc[i][:100]}")
 
