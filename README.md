@@ -18,10 +18,21 @@ Educational project comparing traditional ML approaches with modern transformer-
 
 ## Setup
 
+### Option 1: Using Conda (Recommended)
 ```bash
 # Create conda environment
 conda env create -f ml.yml
 conda activate sms_ml
+```
+
+### Option 2: Using pip
+```bash
+# Create virtual environment
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+
+# Install dependencies
+pip install -r requirements.txt
 ```
 
 ## Usage
