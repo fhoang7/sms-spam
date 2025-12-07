@@ -1,0 +1,19 @@
+name: sms_ml
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.10
+  - scikit-learn
+  - optuna
+  - pandas
+  - numpy
+  - matplotlib
+  - seaborn
+  - jupyter
+  - pip
+  - pip:
+    - lazypredict
+    - sentence-transformers
+    - chromadb
+    - imbalanced-learn
