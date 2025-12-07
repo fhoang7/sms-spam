@@ -59,11 +59,17 @@ print("\n" + "="*70)
 print("LAZYPREDICT - BASELINE MODEL COMPARISON")
 print("="*70)
 
+print("\nConverting sparse matrices to DataFrames for LazyPredict...")
+# LazyPredict requires DataFrame input, not sparse matrices
+X_train_df = pd.DataFrame(X_train_tfidf.toarray())
+X_test_df = pd.DataFrame(X_test_tfidf.toarray())
+print(f"✓ Converted to DataFrames: {X_train_df.shape}, {X_test_df.shape}")
+
 print("\nTesting 30+ classification models...")
 print("(This may take a few minutes...)\n")
 
 clf = LazyClassifier(verbose=0, ignore_warnings=True, custom_metric=None)
-models, predictions = clf.fit(X_train_tfidf, X_test_tfidf, y_train, y_test)
+models, predictions = clf.fit(X_train_df, X_test_df, y_train, y_test)
 
 # Display results sorted by F1-Score
 print("\nTop 15 Models by F1-Score:")
