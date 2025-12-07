@@ -65,65 +65,100 @@ print(f"OK Loaded test messages")
 
 #%% Load Stage 1: TF-IDF Model
 print("\n" + "="*70)
-print("LOADING STAGE 1: TF-IDF MODEL")
+print("LOADING STAGE 1: TF-IDF MODEL (BEST FROM TRADITIONAL ML)")
 print("="*70)
 
 # Load TF-IDF features
 X_test_tfidf = sparse.load_npz(os.path.join(DB_PATH, 'X_test_tfidf.npz'))
 print(f"OK Loaded TF-IDF features: {X_test_tfidf.shape}")
 
-# Load training data to retrain model
+# Load training data
 X_train_tfidf = sparse.load_npz(os.path.join(DB_PATH, 'X_train_tfidf.npz'))
 y_train = np.load(os.path.join(DB_PATH, 'y_train.npy'))
 print(f"OK Loaded training data: {X_train_tfidf.shape}")
-
-# Train the model identified as best
-model_name = config['model_name']
-print(f"\nTraining {model_name}...")
 
 # Convert to DataFrame
 X_train_df = pd.DataFrame(X_train_tfidf.toarray())
 X_test_df = pd.DataFrame(X_test_tfidf.toarray())
 
-# Import and train model
-model_mapping = {
-    'LogisticRegression': ('sklearn.linear_model', 'LogisticRegression'),
-    'LinearDiscriminantAnalysis': ('sklearn.discriminant_analysis', 'LinearDiscriminantAnalysis'),
-    'SGDClassifier': ('sklearn.linear_model', 'SGDClassifier'),
-    'PassiveAggressiveClassifier': ('sklearn.linear_model', 'PassiveAggressiveClassifier'),
-    'RidgeClassifier': ('sklearn.linear_model', 'RidgeClassifier'),
-    'RidgeClassifierCV': ('sklearn.linear_model', 'RidgeClassifierCV'),
-    'ExtraTreesClassifier': ('sklearn.ensemble', 'ExtraTreesClassifier'),
-    'RandomForestClassifier': ('sklearn.ensemble', 'RandomForestClassifier'),
-    'BaggingClassifier': ('sklearn.ensemble', 'BaggingClassifier'),
-    'GradientBoostingClassifier': ('sklearn.ensemble', 'GradientBoostingClassifier'),
-    'LinearSVC': ('sklearn.svm', 'LinearSVC'),
-}
+# Load traditional ML results to get best model
+traditional_results_file = os.path.join(GRAPHS_DIR, 'traditional_ml_results.csv')
+if not os.path.exists(traditional_results_file):
+    print("\nERROR: traditional_ml_results.csv not found")
+    print("Please run traditional_ml.py first.")
+    exit(1)
 
-if model_name in model_mapping:
-    import importlib
-    module_name, class_name = model_mapping[model_name]
-    module = importlib.import_module(module_name)
-    ModelClass = getattr(module, class_name)
+traditional_results = pd.read_csv(traditional_results_file, index_col=0)
+best_traditional_model = traditional_results.sort_values('F1 Score', ascending=False).index[0]
+best_traditional_f1 = traditional_results.loc[best_traditional_model, 'F1 Score']
 
-    if model_name in ['LinearSVC', 'RidgeClassifier', 'RidgeClassifierCV']:
-        from sklearn.calibration import CalibratedClassifierCV
-        base_model = ModelClass()
-        stage1_model = CalibratedClassifierCV(base_model, cv=3)
-    else:
-        stage1_model = ModelClass()
+print(f"\nBest Traditional ML Model: {best_traditional_model}")
+print(f"  F1-Score: {best_traditional_f1:.4f}")
 
-    stage1_model.fit(X_train_df, y_train)
-    print("OK Stage 1 model trained")
+# Try to load cached model
+stage1_model_file = os.path.join(DB_PATH, 'stage1_best_model.pkl')
+if os.path.exists(stage1_model_file):
+    print(f"Loading cached model from {stage1_model_file}...")
+    stage1_model = joblib.load(stage1_model_file)
+    print("OK Loaded cached Stage 1 model")
 else:
-    print(f"WARNING Model {model_name} not recognized, using LogisticRegression")
-    from sklearn.linear_model import LogisticRegression
-    stage1_model = LogisticRegression(max_iter=1000)
-    stage1_model.fit(X_train_df, y_train)
+    # Train the best model
+    print(f"Training {best_traditional_model}...")
+
+    # Model mapping for sklearn models
+    model_mapping = {
+        'LogisticRegression': ('sklearn.linear_model', 'LogisticRegression'),
+        'LinearDiscriminantAnalysis': ('sklearn.discriminant_analysis', 'LinearDiscriminantAnalysis'),
+        'SGDClassifier': ('sklearn.linear_model', 'SGDClassifier'),
+        'PassiveAggressiveClassifier': ('sklearn.linear_model', 'PassiveAggressiveClassifier'),
+        'RidgeClassifier': ('sklearn.linear_model', 'RidgeClassifier'),
+        'RidgeClassifierCV': ('sklearn.linear_model', 'RidgeClassifierCV'),
+        'ExtraTreesClassifier': ('sklearn.ensemble', 'ExtraTreesClassifier'),
+        'RandomForestClassifier': ('sklearn.ensemble', 'RandomForestClassifier'),
+        'BaggingClassifier': ('sklearn.ensemble', 'BaggingClassifier'),
+        'GradientBoostingClassifier': ('sklearn.ensemble', 'GradientBoostingClassifier'),
+        'AdaBoostClassifier': ('sklearn.ensemble', 'AdaBoostClassifier'),
+        'LinearSVC': ('sklearn.svm', 'LinearSVC'),
+        'SVC': ('sklearn.svm', 'SVC'),
+        'DecisionTreeClassifier': ('sklearn.tree', 'DecisionTreeClassifier'),
+        'KNeighborsClassifier': ('sklearn.neighbors', 'KNeighborsClassifier'),
+        'GaussianNB': ('sklearn.naive_bayes', 'GaussianNB'),
+        'BernoulliNB': ('sklearn.naive_bayes', 'BernoulliNB'),
+    }
+
+    if best_traditional_model in model_mapping:
+        import importlib
+        module_name, class_name = model_mapping[best_traditional_model]
+        module = importlib.import_module(module_name)
+        ModelClass = getattr(module, class_name)
+
+        # Models that need probability calibration
+        if best_traditional_model in ['LinearSVC', 'RidgeClassifier', 'RidgeClassifierCV']:
+            from sklearn.calibration import CalibratedClassifierCV
+            base_model = ModelClass()
+            stage1_model = CalibratedClassifierCV(base_model, cv=3)
+            print("  (Using CalibratedClassifierCV for probability estimates)")
+        else:
+            stage1_model = ModelClass()
+
+        stage1_model.fit(X_train_df, y_train)
+        print("OK Stage 1 model trained")
+
+        # Save model for future use
+        joblib.dump(stage1_model, stage1_model_file)
+        print(f"OK Saved model to {stage1_model_file}")
+    else:
+        print(f"WARNING Model {best_traditional_model} not in mapping, using LogisticRegression")
+        from sklearn.linear_model import LogisticRegression
+        stage1_model = LogisticRegression(max_iter=1000)
+        stage1_model.fit(X_train_df, y_train)
+        joblib.dump(stage1_model, stage1_model_file)
+
+stage1_model_name = best_traditional_model
 
 #%% Load Stage 2: Embedding Model
 print("\n" + "="*70)
-print("LOADING STAGE 2: EMBEDDING MODEL")
+print("LOADING STAGE 2: EMBEDDING MODEL (BEST FROM EMBEDDING ML)")
 print("="*70)
 
 # Load pre-computed embeddings
@@ -133,46 +168,87 @@ print(f"OK Loaded embeddings")
 print(f"  Train: {X_train_embeddings.shape}")
 print(f"  Test: {X_test_embeddings.shape}")
 
+# Convert to DataFrame
+X_train_emb_df = pd.DataFrame(X_train_embeddings)
+X_test_emb_df = pd.DataFrame(X_test_embeddings)
+
 # Load embedding results to find best model
 embedding_results_file = os.path.join(GRAPHS_DIR, 'embedding_ml_results.csv')
-if os.path.exists(embedding_results_file):
-    embedding_results = pd.read_csv(embedding_results_file, index_col=0)
-    best_embedding_model_name = embedding_results.sort_values('F1 Score', ascending=False).index[0]
-    print(f"OK Best embedding model: {best_embedding_model_name}")
-
-    # Train best embedding model
-    if best_embedding_model_name in model_mapping:
-        module_name, class_name = model_mapping[best_embedding_model_name]
-        module = importlib.import_module(module_name)
-        ModelClass = getattr(module, class_name)
-
-        if best_embedding_model_name in ['LinearSVC', 'RidgeClassifier', 'RidgeClassifierCV']:
-            from sklearn.calibration import CalibratedClassifierCV
-            base_model = ModelClass()
-            stage2_model = CalibratedClassifierCV(base_model, cv=3)
-        else:
-            stage2_model = ModelClass()
-
-        X_train_emb_df = pd.DataFrame(X_train_embeddings)
-        X_test_emb_df = pd.DataFrame(X_test_embeddings)
-
-        print(f"Training {best_embedding_model_name}...")
-        stage2_model.fit(X_train_emb_df, y_train)
-        print("OK Stage 2 model trained")
-    else:
-        print(f"WARNING Model {best_embedding_model_name} not recognized, using LogisticRegression")
-        from sklearn.linear_model import LogisticRegression
-        stage2_model = LogisticRegression(max_iter=1000)
-        X_train_emb_df = pd.DataFrame(X_train_embeddings)
-        X_test_emb_df = pd.DataFrame(X_test_embeddings)
-        stage2_model.fit(X_train_emb_df, y_train)
-else:
-    print("WARNING Embedding results not found, using LogisticRegression")
+if not os.path.exists(embedding_results_file):
+    print("\nWARNING: embedding_ml_results.csv not found")
+    print("Using LogisticRegression as fallback for Stage 2")
     from sklearn.linear_model import LogisticRegression
     stage2_model = LogisticRegression(max_iter=1000)
-    X_train_emb_df = pd.DataFrame(X_train_embeddings)
-    X_test_emb_df = pd.DataFrame(X_test_embeddings)
     stage2_model.fit(X_train_emb_df, y_train)
+    stage2_model_name = 'LogisticRegression (fallback)'
+else:
+    embedding_results = pd.read_csv(embedding_results_file, index_col=0)
+    best_embedding_model = embedding_results.sort_values('F1 Score', ascending=False).index[0]
+    best_embedding_f1 = embedding_results.loc[best_embedding_model, 'F1 Score']
+
+    print(f"\nBest Embedding ML Model: {best_embedding_model}")
+    print(f"  F1-Score: {best_embedding_f1:.4f}")
+
+    # Try to load cached model
+    stage2_model_file = os.path.join(DB_PATH, 'stage2_best_model.pkl')
+    if os.path.exists(stage2_model_file):
+        print(f"Loading cached model from {stage2_model_file}...")
+        stage2_model = joblib.load(stage2_model_file)
+        print("OK Loaded cached Stage 2 model")
+    else:
+        # Train the best embedding model
+        print(f"Training {best_embedding_model}...")
+
+        # Use same model mapping as Stage 1
+        model_mapping = {
+            'LogisticRegression': ('sklearn.linear_model', 'LogisticRegression'),
+            'LinearDiscriminantAnalysis': ('sklearn.discriminant_analysis', 'LinearDiscriminantAnalysis'),
+            'SGDClassifier': ('sklearn.linear_model', 'SGDClassifier'),
+            'PassiveAggressiveClassifier': ('sklearn.linear_model', 'PassiveAggressiveClassifier'),
+            'RidgeClassifier': ('sklearn.linear_model', 'RidgeClassifier'),
+            'RidgeClassifierCV': ('sklearn.linear_model', 'RidgeClassifierCV'),
+            'ExtraTreesClassifier': ('sklearn.ensemble', 'ExtraTreesClassifier'),
+            'RandomForestClassifier': ('sklearn.ensemble', 'RandomForestClassifier'),
+            'BaggingClassifier': ('sklearn.ensemble', 'BaggingClassifier'),
+            'GradientBoostingClassifier': ('sklearn.ensemble', 'GradientBoostingClassifier'),
+            'AdaBoostClassifier': ('sklearn.ensemble', 'AdaBoostClassifier'),
+            'LinearSVC': ('sklearn.svm', 'LinearSVC'),
+            'SVC': ('sklearn.svm', 'SVC'),
+            'DecisionTreeClassifier': ('sklearn.tree', 'DecisionTreeClassifier'),
+            'KNeighborsClassifier': ('sklearn.neighbors', 'KNeighborsClassifier'),
+            'GaussianNB': ('sklearn.naive_bayes', 'GaussianNB'),
+            'BernoulliNB': ('sklearn.naive_bayes', 'BernoulliNB'),
+        }
+
+        if best_embedding_model in model_mapping:
+            import importlib
+            module_name, class_name = model_mapping[best_embedding_model]
+            module = importlib.import_module(module_name)
+            ModelClass = getattr(module, class_name)
+
+            # Models that need probability calibration
+            if best_embedding_model in ['LinearSVC', 'RidgeClassifier', 'RidgeClassifierCV']:
+                from sklearn.calibration import CalibratedClassifierCV
+                base_model = ModelClass()
+                stage2_model = CalibratedClassifierCV(base_model, cv=3)
+                print("  (Using CalibratedClassifierCV for probability estimates)")
+            else:
+                stage2_model = ModelClass()
+
+            stage2_model.fit(X_train_emb_df, y_train)
+            print("OK Stage 2 model trained")
+
+            # Save model for future use
+            joblib.dump(stage2_model, stage2_model_file)
+            print(f"OK Saved model to {stage2_model_file}")
+        else:
+            print(f"WARNING Model {best_embedding_model} not in mapping, using LogisticRegression")
+            from sklearn.linear_model import LogisticRegression
+            stage2_model = LogisticRegression(max_iter=1000)
+            stage2_model.fit(X_train_emb_df, y_train)
+            joblib.dump(stage2_model, stage2_model_file)
+
+    stage2_model_name = best_embedding_model
 
 #%% Check for Stage 3: LLM Results
 print("\n" + "="*70)
@@ -408,8 +484,10 @@ print(f"OK Saved detailed results to {results_csv}")
 # Save summary
 summary = {
     'model_config': {
-        'stage1_model': config['model_name'],
-        'stage2_model': best_embedding_model_name if 'best_embedding_model_name' in locals() else 'LogisticRegression',
+        'stage1_model': stage1_model_name,
+        'stage1_f1_score': float(best_traditional_f1),
+        'stage2_model': stage2_model_name,
+        'stage2_f1_score': float(best_embedding_f1) if 'best_embedding_f1' in locals() else 0.0,
         'stage3_available': llm_available
     },
     'thresholds': config,

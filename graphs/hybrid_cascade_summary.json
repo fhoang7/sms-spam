@@ -1,7 +1,9 @@
 {
   "model_config": {
     "stage1_model": "LogisticRegression",
+    "stage1_f1_score": 0.9826658229169298,
     "stage2_model": "SVC",
+    "stage2_f1_score": 0.989964423794012,
     "stage3_available": false
   },
   "thresholds": {
@@ -21,16 +23,16 @@
     "stage2_high_threshold": 0.85
   },
   "performance": {
-    "accuracy": 0.9865350089766607,
-    "precision": 0.935064935064935,
+    "accuracy": 0.9892280071813285,
+    "precision": 0.9536423841059603,
     "recall": 0.9664429530201343,
-    "f1_score": 0.9504950495049505
+    "f1_score": 0.96
   },
   "stage_usage": {
     "stage1_count": 469,
     "stage1_pct": 42.100538599640934,
-    "stage2_count": 609,
-    "stage2_pct": 54.66786355475763,
+    "stage2_count": 132,
+    "stage2_pct": 11.8491921005386,
     "stage3_count": 0,
     "stage3_pct": 0.0
   },
@@ -41,10 +43,10 @@
     "cost_per_1m": 0.0
   },
   "latency": {
-    "mean_ms": 9.04885806557948,
-    "median_ms": 9.171366691589355,
-    "p50_ms": 9.171366691589355,
-    "p95_ms": 18.315172195434567,
-    "p99_ms": 22.04613924026488
+    "mean_ms": 9.18017148543517,
+    "median_ms": 9.289979934692383,
+    "p50_ms": 9.289979934692383,
+    "p95_ms": 16.68851375579834,
+    "p99_ms": 21.90685987472531
   }
 }
