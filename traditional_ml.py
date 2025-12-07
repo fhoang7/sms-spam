@@ -72,30 +72,34 @@ print("(This may take a few minutes...)\n")
 clf = LazyClassifier(verbose=0, ignore_warnings=True, custom_metric=None)
 models, predictions = clf.fit(X_train_df, X_test_df, y_train, y_test)
 
-# Calculate Precision and Recall for each model
+# Calculate Precision and Recall for each model from predictions
 print("\nCalculating Precision and Recall for all models...")
 precision_scores = []
 recall_scores = []
 
 for model_name in models.index:
-    # Skip models that don't have predictions (they may have failed)
-    if model_name not in predictions.columns:
-        print(f"⚠ Skipping {model_name} - no predictions available")
+    try:
+        # Get predictions for this model
+        y_pred = predictions[model_name].values
+        precision = precision_score(y_test, y_pred, average='binary', zero_division=0)
+        recall = recall_score(y_test, y_pred, average='binary', zero_division=0)
+        precision_scores.append(precision)
+        recall_scores.append(recall)
+    except KeyError:
+        # Model failed and has no predictions
         precision_scores.append(np.nan)
         recall_scores.append(np.nan)
-        continue
-
-    y_pred = predictions[model_name]
-    precision = precision_score(y_test, y_pred, average='binary', zero_division=0)
-    recall = recall_score(y_test, y_pred, average='binary', zero_division=0)
-    precision_scores.append(precision)
-    recall_scores.append(recall)
+    except Exception as e:
+        # Other errors
+        print(f"⚠ Error processing {model_name}: {e}")
+        precision_scores.append(np.nan)
+        recall_scores.append(np.nan)
 
 # Add Precision and Recall columns to models DataFrame
 models['Precision'] = precision_scores
 models['Recall'] = recall_scores
 
-print(f"✓ Added Precision and Recall metrics to {len(models)} models")
+print(f"✓ Evaluated {len(models)} models with Accuracy, F1-Score, ROC AUC, Precision, and Recall")
 
 # Display results sorted by F1-Score
 print("\nTop 15 Models by F1-Score:")
@@ -132,7 +136,26 @@ for idx, metric in enumerate(metrics):
     ax.set_yticklabels(top_data.index, fontsize=9)
     ax.set_xlabel(metric, fontsize=10)
     ax.set_title(f'Top {top_n} Models by {metric}', fontsize=12, fontweight='bold')
-    ax.set_xlim([0, 1])
+
+    # Dynamically adjust x-axis for better visibility
+    # If minimum value is > 0.9, zoom in to show differences better
+    min_val = top_data[metric].min()
+    max_val = top_data[metric].max()
+
+    if min_val > 0.9:
+        # Zoom in to show differences in high-performing models
+        x_min = max(0, min_val - 0.03)
+        x_max = min(1.0, max_val + 0.01)
+        ax.set_xlim([x_min, x_max])
+    elif min_val > 0.85:
+        # Moderate zoom for good performers
+        x_min = max(0, min_val - 0.05)
+        x_max = min(1.0, max_val + 0.02)
+        ax.set_xlim([x_min, x_max])
+    else:
+        # Use standard 0-1 range for more varied scores
+        ax.set_xlim([0, 1])
+
     ax.grid(axis='x', alpha=0.3)
     ax.invert_yaxis()
 
