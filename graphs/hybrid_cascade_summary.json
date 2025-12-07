@@ -1,0 +1,50 @@
+{
+  "model_config": {
+    "stage1_model": "LogisticRegression",
+    "stage2_model": "SVC",
+    "stage3_available": false
+  },
+  "thresholds": {
+    "model_name": "LogisticRegression",
+    "stage1_low_threshold": 0.029122246724215383,
+    "stage1_high_threshold": 0.2645490036890897,
+    "stage1_low_precision": 0.18860759493670887,
+    "stage1_low_recall": 1.0,
+    "stage1_high_precision": 0.9513888888888888,
+    "stage1_high_recall": 0.9194630872483222,
+    "stage1_accuracy": 0.4245960502692998,
+    "stage1_f1": 0.31735889243876464,
+    "stage1_confident_spam_pct": 12.926391382405743,
+    "stage1_confident_ham_pct": 29.17414721723519,
+    "stage1_uncertain_pct": 57.899461400359066,
+    "stage2_low_threshold": 0.15,
+    "stage2_high_threshold": 0.85
+  },
+  "performance": {
+    "accuracy": 0.9865350089766607,
+    "precision": 0.935064935064935,
+    "recall": 0.9664429530201343,
+    "f1_score": 0.9504950495049505
+  },
+  "stage_usage": {
+    "stage1_count": 469,
+    "stage1_pct": 42.100538599640934,
+    "stage2_count": 609,
+    "stage2_pct": 54.66786355475763,
+    "stage3_count": 0,
+    "stage3_pct": 0.0
+  },
+  "cost": {
+    "total_cost": 0.0,
+    "avg_cost_per_message": 0.0,
+    "cost_per_1k": 0.0,
+    "cost_per_1m": 0.0
+  },
+  "latency": {
+    "mean_ms": 9.04885806557948,
+    "median_ms": 9.171366691589355,
+    "p50_ms": 9.171366691589355,
+    "p95_ms": 18.315172195434567,
+    "p99_ms": 22.04613924026488
+  }
+}

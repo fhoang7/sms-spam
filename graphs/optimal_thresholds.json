@@ -1,0 +1,16 @@
+{
+  "model_name": "LogisticRegression",
+  "stage1_low_threshold": 0.029122246724215383,
+  "stage1_high_threshold": 0.2645490036890897,
+  "stage1_low_precision": 0.18860759493670887,
+  "stage1_low_recall": 1.0,
+  "stage1_high_precision": 0.9513888888888888,
+  "stage1_high_recall": 0.9194630872483222,
+  "stage1_accuracy": 0.4245960502692998,
+  "stage1_f1": 0.31735889243876464,
+  "stage1_confident_spam_pct": 12.926391382405743,
+  "stage1_confident_ham_pct": 29.17414721723519,
+  "stage1_uncertain_pct": 57.899461400359066,
+  "stage2_low_threshold": 0.15,
+  "stage2_high_threshold": 0.85
+}
