@@ -1,0 +1,9 @@
+{
+  "best_model": "SVC",
+  "best_f1": 0.9899644237940121,
+  "best_accuracy": 0.9901256732495511,
+  "embedding_model": "all-MiniLM-L6-v2",
+  "embedding_dim": 384,
+  "n_train_samples": 4456,
+  "n_test_samples": 1114
+}

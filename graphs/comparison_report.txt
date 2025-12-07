@@ -1,0 +1,31 @@
+======================================================================
+SMS SPAM DETECTION: COMPREHENSIVE COMPARISON REPORT
+======================================================================
+
+PROJECT OVERVIEW
+----------------------------------------------------------------------
+Comparing Traditional ML (TF-IDF) vs Embedding-based (Transformers)
+Dataset: SMS Spam Collection (5,571 messages)
+  - Ham: 86.6%
+  - Spam: 13.4%
+
+BEST MODEL COMPARISON
+----------------------------------------------------------------------
+Traditional ML (TF-IDF):
+  Model:      LogisticRegression
+  Accuracy:   0.9829
+  Precision:  nan
+  Recall:     nan
+  F1-Score:   0.9827
+  ROC AUC:    0.9476
+
+Embedding-based (Sentence Transformers):
+  Model:      SVC
+  Accuracy:   0.9901
+  Precision:  nan
+  Recall:     nan
+  F1-Score:   0.9900
+  ROC AUC:    0.9631
+
+PERFORMANCE IMPROVEMENTS
+----------------------------------------------------------------------

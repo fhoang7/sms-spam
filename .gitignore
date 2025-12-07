@@ -5,6 +5,7 @@ __pycache__/
 
 # Custom ignores
 *.csv
+data/
 
 # C extensions
 *.so
