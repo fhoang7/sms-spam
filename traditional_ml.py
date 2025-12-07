@@ -4,6 +4,7 @@ import numpy as np
 import os
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.model_selection import cross_val_score
+from sklearn.metrics import precision_score, recall_score
 from lazypredict.Supervised import LazyClassifier
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -71,6 +72,31 @@ print("(This may take a few minutes...)\n")
 clf = LazyClassifier(verbose=0, ignore_warnings=True, custom_metric=None)
 models, predictions = clf.fit(X_train_df, X_test_df, y_train, y_test)
 
+# Calculate Precision and Recall for each model
+print("\nCalculating Precision and Recall for all models...")
+precision_scores = []
+recall_scores = []
+
+for model_name in models.index:
+    # Skip models that don't have predictions (they may have failed)
+    if model_name not in predictions.columns:
+        print(f"⚠ Skipping {model_name} - no predictions available")
+        precision_scores.append(np.nan)
+        recall_scores.append(np.nan)
+        continue
+
+    y_pred = predictions[model_name]
+    precision = precision_score(y_test, y_pred, average='binary', zero_division=0)
+    recall = recall_score(y_test, y_pred, average='binary', zero_division=0)
+    precision_scores.append(precision)
+    recall_scores.append(recall)
+
+# Add Precision and Recall columns to models DataFrame
+models['Precision'] = precision_scores
+models['Recall'] = recall_scores
+
+print(f"✓ Added Precision and Recall metrics to {len(models)} models")
+
 # Display results sorted by F1-Score
 print("\nTop 15 Models by F1-Score:")
 print("="*70)
@@ -89,12 +115,12 @@ if not os.path.exists(graphs_dir):
     print(f"✓ Created {graphs_dir}/ directory")
 
 # Plot top 10 models by different metrics
-fig, axes = plt.subplots(2, 2, figsize=(15, 12))
-metrics = ['Accuracy', 'F1 Score', 'ROC AUC', 'Balanced Accuracy']
+fig, axes = plt.subplots(2, 3, figsize=(20, 12))
+metrics = ['Accuracy', 'Precision', 'Recall', 'F1 Score', 'ROC AUC']
 top_n = 10
 
 for idx, metric in enumerate(metrics):
-    ax = axes[idx // 2, idx % 2]
+    ax = axes[idx // 3, idx % 3]
 
     # Get top 10 models by this metric
     top_data = models.sort_values(metric, ascending=False).head(top_n)
@@ -109,6 +135,9 @@ for idx, metric in enumerate(metrics):
     ax.set_xlim([0, 1])
     ax.grid(axis='x', alpha=0.3)
     ax.invert_yaxis()
+
+# Hide the empty subplot (we have 5 metrics in a 2x3 grid)
+axes[1, 2].axis('off')
 
 plt.tight_layout()
 plt.savefig(os.path.join(graphs_dir, 'traditional_ml_comparison.png'), dpi=300, bbox_inches='tight')
@@ -145,10 +174,12 @@ best_model_name = models.sort_values('F1 Score', ascending=False).index[0]
 print(f"\nBest Model: {best_model_name}")
 
 # Get predictions from LazyPredict
-best_predictions = predictions[best_model_name]
-
-# Print detailed evaluation
-print_evaluation(y_test, best_predictions, title=f"{best_model_name} Performance")
+if best_model_name in predictions.columns:
+    best_predictions = predictions[best_model_name]
+    # Print detailed evaluation
+    print_evaluation(y_test, best_predictions, title=f"{best_model_name} Performance")
+else:
+    print(f"⚠ Cannot evaluate {best_model_name} - predictions not available")
 
 #%% Save TF-IDF vectorizer for later use
 print("\n" + "="*70)
