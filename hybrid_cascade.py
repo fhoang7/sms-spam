@@ -95,13 +95,31 @@ best_traditional_f1 = traditional_results.loc[best_traditional_model, 'F1 Score'
 print(f"\nBest Traditional ML Model: {best_traditional_model}")
 print(f"  F1-Score: {best_traditional_f1:.4f}")
 
-# Try to load cached model
+# Check for optimized model first, then cached model
+stage1_optimized_file = os.path.join(DB_PATH, 'stage1_optimized_model.pkl')
 stage1_model_file = os.path.join(DB_PATH, 'stage1_best_model.pkl')
-if os.path.exists(stage1_model_file):
-    print(f"Loading cached model from {stage1_model_file}...")
+
+if os.path.exists(stage1_optimized_file):
+    print(f"Loading OPTIMIZED model from {stage1_optimized_file}...")
+    stage1_model = joblib.load(stage1_optimized_file)
+    stage1_is_optimized = True
+    print("OK Loaded optimized Stage 1 model (Optuna tuned)")
+
+    # Load optimization results for metadata
+    opt_results_file = os.path.join(GRAPHS_DIR, 'traditional_optimization_results.json')
+    if os.path.exists(opt_results_file):
+        with open(opt_results_file, 'r') as f:
+            opt_results = json.load(f)
+        print(f"  Optimized Recall: {opt_results['optimized_metrics']['recall']:.4f}")
+        print(f"  Optimized F1: {opt_results['optimized_metrics']['f1_score']:.4f}")
+
+elif os.path.exists(stage1_model_file):
+    print(f"Loading cached baseline model from {stage1_model_file}...")
     stage1_model = joblib.load(stage1_model_file)
-    print("OK Loaded cached Stage 1 model")
+    stage1_is_optimized = False
+    print("OK Loaded cached Stage 1 model (baseline)")
 else:
+    stage1_is_optimized = False
     # Train the best model
     print(f"Training {best_traditional_model}...")
 
@@ -189,13 +207,31 @@ else:
     print(f"\nBest Embedding ML Model: {best_embedding_model}")
     print(f"  F1-Score: {best_embedding_f1:.4f}")
 
-    # Try to load cached model
+    # Check for optimized model first, then cached model
+    stage2_optimized_file = os.path.join(DB_PATH, 'stage2_optimized_model.pkl')
     stage2_model_file = os.path.join(DB_PATH, 'stage2_best_model.pkl')
-    if os.path.exists(stage2_model_file):
-        print(f"Loading cached model from {stage2_model_file}...")
+
+    if os.path.exists(stage2_optimized_file):
+        print(f"Loading OPTIMIZED model from {stage2_optimized_file}...")
+        stage2_model = joblib.load(stage2_optimized_file)
+        stage2_is_optimized = True
+        print("OK Loaded optimized Stage 2 model (Optuna tuned)")
+
+        # Load optimization results for metadata
+        opt_results_file = os.path.join(GRAPHS_DIR, 'embedding_optimization_results.json')
+        if os.path.exists(opt_results_file):
+            with open(opt_results_file, 'r') as f:
+                opt_results = json.load(f)
+            print(f"  Optimized Recall: {opt_results['optimized_metrics']['recall']:.4f}")
+            print(f"  Optimized F1: {opt_results['optimized_metrics']['f1_score']:.4f}")
+
+    elif os.path.exists(stage2_model_file):
+        print(f"Loading cached baseline model from {stage2_model_file}...")
         stage2_model = joblib.load(stage2_model_file)
-        print("OK Loaded cached Stage 2 model")
+        stage2_is_optimized = False
+        print("OK Loaded cached Stage 2 model (baseline)")
     else:
+        stage2_is_optimized = False
         # Train the best embedding model
         print(f"Training {best_embedding_model}...")
 
@@ -486,8 +522,10 @@ summary = {
     'model_config': {
         'stage1_model': stage1_model_name,
         'stage1_f1_score': float(best_traditional_f1),
+        'stage1_optimized': stage1_is_optimized,
         'stage2_model': stage2_model_name,
         'stage2_f1_score': float(best_embedding_f1) if 'best_embedding_f1' in locals() else 0.0,
+        'stage2_optimized': stage2_is_optimized if 'stage2_is_optimized' in locals() else False,
         'stage3_available': llm_available
     },
     'thresholds': config,
