@@ -3,9 +3,32 @@ __pycache__/
 *.py[cod]
 *$py.class
 
-# Custom ignores
-*.csv
-data/
+# Custom ignores - Project specific
+
+# Data files (keep directory structure but ignore contents)
+data/*
+!data/.gitkeep
+!data/raw/
+!data/processed/
+!data/features/
+!data/vectorizers/
+!data/chromadb/
+
+# Trained models (ignore all model files)
+models/*
+!models/.gitkeep
+
+# Results and outputs (ignore generated results)
+results/*
+!results/.gitkeep
+graphs/  # Old results directory (to be removed)
+
+# Raw dataset (large file, not in git)
+spam.csv
+
+# IDE settings
+.vscode/
+.idea/
 
 # C extensions
 *.so

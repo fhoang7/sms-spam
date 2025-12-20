@@ -1,0 +1,94 @@
+# SMS Spam Detection Configuration
+
+# Data settings
+data:
+  raw_path: "data/raw/spam.csv"
+  encoding: "latin"  # Must be latin-1, not UTF-8
+  test_size: 0.2
+  random_state: 42
+
+  # Processed data paths
+  processed_dir: "data/processed"
+  features_dir: "data/features"
+  vectorizers_dir: "data/vectorizers"
+  chromadb_dir: "data/chromadb"
+
+# TF-IDF feature extraction
+tfidf:
+  max_features: 3000
+  ngram_range: [1, 2]  # unigrams and bigrams
+  min_df: 2
+  max_df: 0.95
+  sublinear_tf: true
+  use_idf: true
+
+# Sentence transformer embeddings
+embeddings:
+  model_name: "all-MiniLM-L6-v2"
+  batch_size: 32
+  normalize_embeddings: true
+  show_progress_bar: true
+
+# ChromaDB settings (optional)
+chromadb:
+  collection_name: "sms_spam_embeddings"
+  distance_metric: "cosine"
+
+# Hyperparameter optimization
+optimization:
+  n_trials: 100
+  n_jobs: -1  # Use all CPU cores
+  metric: "recall"  # Optimize for recall
+  timeout: null  # No timeout (set in seconds if needed)
+
+  # Optuna study settings
+  study_direction: "maximize"
+  sampler: "TPE"  # Tree-structured Parzen Estimator
+  pruner: "MedianPruner"
+
+# 2-Stage Cascade Classifier
+cascade:
+  # Stage 1 (TF-IDF) thresholds
+  stage1_low_threshold: 0.1   # Below this -> HAM (high confidence)
+  stage1_high_threshold: 0.9  # Above this -> SPAM (high confidence)
+
+  # Stage 2 (Embeddings) threshold
+  stage2_threshold: 0.5  # Default decision threshold
+
+  # Target coverage (% handled by each stage)
+  target_stage1_coverage: 0.8  # Aim for 80% filtered by Stage 1
+
+# Model training
+training:
+  cv_folds: 5  # Cross-validation folds
+  scoring: "f1"  # Scoring metric for CV
+  n_jobs: -1
+
+  # Models to test with LazyPredict
+  excluded_classifiers: [
+    "GaussianProcessClassifier",  # Too slow
+    "QuadraticDiscriminantAnalysis",  # Often fails
+  ]
+
+# Evaluation
+evaluation:
+  metrics: ["accuracy", "precision", "recall", "f1", "roc_auc"]
+  class_names: ["ham", "spam"]
+
+  # Visualization settings
+  figure_dpi: 150
+  figure_size: [10, 6]
+  plot_style: "seaborn-v0_8-darkgrid"
+
+# Output paths
+output:
+  models_dir: "models"
+  results_dir: "results"
+  metrics_dir: "results/metrics"
+  visualizations_dir: "results/visualizations"
+  reports_dir: "results/reports"
+
+# Logging
+logging:
+  level: "INFO"
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
