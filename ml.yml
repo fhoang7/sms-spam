@@ -17,4 +17,4 @@ dependencies:
     - sentence-transformers
     - chromadb
     - imbalanced-learn
-    - anthropic>=0.18.0
+    - pyyaml>=6.0

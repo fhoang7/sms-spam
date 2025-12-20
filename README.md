@@ -1,204 +1,267 @@
-# SMS Spam Detection: Traditional ML vs LLM Embeddings vs Hybrid System
+# SMS Spam Detection: Traditional ML vs Embeddings vs Hybrid Cascade
 
-Educational project comparing traditional ML approaches with modern transformer-based embeddings and LLM-based classification for SMS spam detection.
+Educational project comparing traditional ML approaches with modern transformer-based embeddings for SMS spam detection. Features a clean modular architecture and efficient 2-stage cascade classifier.
 
 ## Project Overview
 
-**Goal**: Compare multiple approaches to text classification and build an optimized hybrid system:
+**Goal**: Compare multiple approaches to spam classification and build an optimized 2-stage system:
 1. **Traditional ML**: TF-IDF vectorization + classical algorithms
-2. **LLM Embeddings**: Sentence transformers + modern classifiers
-3. **Direct LLM**: Anthropic API for binary spam classification
-4. **Hybrid Cascade**: Multi-stage system optimizing for cost, speed, and accuracy
+2. **Embedding-based ML**: Sentence transformers + modern classifiers
+3. **Hybrid 2-Stage Cascade**: Optimized system combining both approaches
 
 **Dataset**: SMS Spam Collection (5,571 messages)
 - Ham: 4,825 (86.6%)
 - Spam: 747 (13.4%)
 
-## Performance Comparison
+## Architecture
 
-### Traditional ML (TF-IDF Features)
-![Traditional ML Comparison](graphs/traditional_ml_comparison.png)
+This project uses a clean, modular architecture:
 
-### Embedding-based ML (Sentence Transformers)
-![Embedding ML Comparison](graphs/embedding_ml_comparison.png)
+```
+sms-spam/
+├── src/sms_spam/        # Core package
+│   ├── data/            # Loading, preprocessing, embeddings
+│   ├── features/        # TF-IDF, ChromaDB storage
+│   ├── classifiers/     # Traditional, embedding, hybrid
+│   ├── optimization/    # Optuna tuning, threshold optimization
+│   ├── evaluation/      # Metrics and visualization
+│   └── utils/           # Constants and I/O utilities
+│
+├── scripts/             # Entry point scripts
+│   ├── 01_preprocess.py
+│   ├── 02_train_traditional.py
+│   ├── 03_train_embeddings.py
+│   ├── 04_optimize.py (optional)
+│   ├── 05_train_hybrid.py
+│   └── 06_evaluate.py
+│
+├── configs/             # Configuration files
+├── data/                # Processed data and features
+├── models/              # Trained models
+└── results/             # Metrics, visualizations, reports
+```
 
 ## Setup
 
 ### Option 1: Using Conda (Recommended)
 ```bash
-# Create conda environment
 conda env create -f ml.yml
 conda activate sms_ml
 ```
 
 ### Option 2: Using pip
 ```bash
-# Create virtual environment
 python -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
-
-# Install dependencies
 pip install -r requirements.txt
 ```
 
 ## Usage
 
-### Basic Comparison
+### Complete Workflow
+
+Run scripts in order for the complete workflow:
+
 ```bash
-# 1. Generate embeddings and preprocess data
-python embed.py
+# 1. Preprocess data and generate features
+python scripts/01_preprocess.py
 
-# 2. Run traditional ML approach
-python traditional_ml.py
+# 2. Train traditional ML models (TF-IDF)
+python scripts/02_train_traditional.py
 
-# 3. Run embedding-based approach
-python embedding_classifier.py
+# 3. Train embedding-based models
+python scripts/03_train_embeddings.py
 
-# 4. Compare all models
-python comparison.py
+# 4. (Optional) Optimize hyperparameters with Optuna
+python scripts/04_optimize.py
+
+# 5. Train 2-stage hybrid cascade
+python scripts/05_train_hybrid.py
+
+# 6. Comprehensive evaluation and comparison
+python scripts/06_evaluate.py
 ```
 
-### Extended Analysis (LLM + Hybrid System)
+### Quick Start
+
+For quick experimentation:
 ```bash
-# 5. Test direct LLM classification (requires ANTHROPIC_API_KEY)
-export ANTHROPIC_API_KEY=your_api_key_here
-python llm_classifier.py  # Uses Anthropic Batch API with $20 budget limit
-
-# 6. Run hybrid cascade system (coming soon)
-python hybrid_cascade.py
-
-# 7. Generate comprehensive cost/performance analysis (coming soon)
-python final_comparison.py
+# Just run the first 3 scripts for baseline comparison
+python scripts/01_preprocess.py
+python scripts/02_train_traditional.py
+python scripts/03_train_embeddings.py
 ```
 
-**LLM Classifier Features:**
-- Uses Anthropic Claude 3.5 Haiku via Batch API (50% cost discount)
-- Automatic budget tracking with $20 hard limit across all runs
-- Pre-flight cost estimation prevents overspend
-- Simple yes/no prompts for binary classification
-- Result caching for resumability
-- Comprehensive cost and performance metrics
+## 2-Stage Hybrid Cascade Architecture
+
+The hybrid system implements an efficient 2-stage cascade to optimize for both performance and speed:
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                   INPUT: SMS Message                        │
+└────────────────────────────┬────────────────────────────────┘
+                             │
+                             ▼
+┌─────────────────────────────────────────────────────────────┐
+│              STAGE 1: TF-IDF Classifier                     │
+│                   (Fast & Local)                            │
+├─────────────────────────────────────────────────────────────┤
+│ • TF-IDF vectorization (3000 features)                     │
+│ • Best traditional ML model                                │
+│ • Latency: ~1ms per message                                │
+├─────────────────────────────────────────────────────────────┤
+│ Decision Logic:                                             │
+│   IF probability >= 0.9  → SPAM (confident)      ─────┐    │
+│   IF probability <= 0.1  → HAM (confident)       ─────┤    │
+│   ELSE                   → UNCERTAIN (10-20%)    ─────┼─┐  │
+└────────────────────────────────────────────────────────┼─┼──┘
+                            ▲                            │ │
+                            │                            │ │
+                    Filters 80-90%                       │ │
+                    of messages                          │ │
+                                                         │ │
+                            ┌────────────────────────────┘ │
+                            │                              │
+                            ▼                              │
+┌─────────────────────────────────────────────────────────────┐
+│           STAGE 2: Embedding Classifier                     │
+│               (Semantic Understanding)                      │
+├─────────────────────────────────────────────────────────────┤
+│ • Sentence transformer embedding (384D)                    │
+│ • Best embedding-based model                               │
+│ • Latency: ~10ms per message                               │
+├─────────────────────────────────────────────────────────────┤
+│ Final Decision:                                             │
+│   probability >= 0.5 → SPAM                                 │
+│   probability < 0.5  → HAM                                  │
+└────────────────────────────┬────────────────────────────────┘
+                             │
+                     Handles uncertain
+                     from Stage 1
+                             │
+                             ▼
+┌─────────────────────────────────────────────────────────────┐
+│         OUTPUT: Final Classification + Metadata             │
+├─────────────────────────────────────────────────────────────┤
+│ • Label: spam/ham                                           │
+│ • Confidence scores from each stage                        │
+│ • Which stage made the final decision (1 or 2)            │
+│ • Stage-wise performance breakdown                         │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Performance Trade-offs
+
+| Stage    | Coverage | Avg Latency | Accuracy |
+|----------|----------|-------------|----------|
+| Stage 1  | 80-90%   | 1ms         | ~97%     |
+| Stage 2  | 10-20%   | 10ms        | ~98%     |
+| **Total**| **100%** | **~3ms**    | **~98%** |
+
+**Key Benefits:**
+- **Fast**: Average 3ms latency per message
+- **Accurate**: Maintains 98%+ accuracy
+- **Efficient**: 80-90% filtered by fast Stage 1
+- **No external dependencies**: Completely local inference
+- **100% spam recall**: Through threshold optimization
 
 ## Results
 
-After running all scripts, you'll find comprehensive analysis in the `graphs/` directory:
+After running all scripts, you'll find:
 
-**Performance Visualizations:**
-- `traditional_ml_comparison.png` - Traditional ML model rankings
-- `embedding_ml_comparison.png` - Embedding-based model rankings
-- `best_model_comparison.png` - Side-by-side best model metrics
-- `top5_models_comparison.png` - Top 5 from each approach
-- `distribution_comparison.png` - Statistical distributions
-- `improvement_heatmap.png` - Performance improvements across models
-
-**Data Files:**
-- `traditional_ml_results.csv` - All traditional ML results
+**Metrics** (`results/metrics/`):
+- `traditional_ml_results.csv` - All traditional ML model results
 - `embedding_ml_results.csv` - All embedding-based results
-- `comparison_summary.csv` - Summary statistics
-- `comparison_report.txt` - Comprehensive text report
-- `llm_classifier_results.csv` - LLM predictions with cost/token data
-- `llm_performance_summary.json` - LLM metrics and cost analysis
-- `llm_budget_tracker.json` - Budget tracking across runs
+- `final_comparison.csv` - Side-by-side comparison
+- `cascade_thresholds.json` - Optimized cascade thresholds
+- `hybrid_cascade_results.json` - Cascade performance breakdown
 
-## Hybrid Cascade Architecture
+**Visualizations** (`results/visualizations/`):
+- `model_comparison.png` - Performance comparison
+- `cascade_analysis.png` - Stage usage and performance
+- `cascade_confusion_matrix.png` - Final predictions
 
-The hybrid system implements a 3-stage cascade to optimize for both performance and cost:
+**Reports** (`results/reports/`):
+- `evaluation_report.txt` - Comprehensive text report
 
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│                         INPUT: SMS Message                          │
-└────────────────────────────────┬────────────────────────────────────┘
-                                 │
-                                 ▼
-┌─────────────────────────────────────────────────────────────────────┐
-│                    STAGE 1: TF-IDF Classifier                       │
-│                         (Fast & Free)                               │
-├─────────────────────────────────────────────────────────────────────┤
-│ • Vectorize with pre-trained TF-IDF (3000 features)                │
-│ • Classify with best traditional ML model                          │
-│ • Latency: ~1ms per message                                        │
-│ • Cost: $0 (local inference)                                       │
-├─────────────────────────────────────────────────────────────────────┤
-│ Decision Logic:                                                     │
-│   IF probability >= 0.9  → SPAM (confident)      ─────┐            │
-│   IF probability <= 0.1  → HAM (confident)       ─────┤            │
-│   ELSE                   → UNCERTAIN (10-20%)    ─────┼──┐         │
-└────────────────────────────────────────────────────────┼──┼─────────┘
-                                 ▲                       │  │
-                                 │                       │  │
-                         Filters 80-90%                  │  │
-                         of messages                     │  │
-                                                         │  │
-                                 ┌───────────────────────┘  │
-                                 │                          │
-                                 ▼                          │
-┌─────────────────────────────────────────────────────────────────────┐
-│                 STAGE 2: Embedding Classifier                       │
-│                    (Medium Speed & Free)                            │
-├─────────────────────────────────────────────────────────────────────┤
-│ • Generate sentence transformer embedding (384D)                   │
-│ • Classify with best embedding-based model                         │
-│ • Latency: ~10ms per message                                       │
-│ • Cost: $0 (local inference, one-time embedding)                   │
-├─────────────────────────────────────────────────────────────────────┤
-│ Decision Logic:                                                     │
-│   IF probability >= 0.85 → SPAM (high confidence) ─────┐           │
-│   IF probability <= 0.15 → HAM (high confidence)  ─────┤           │
-│   ELSE                   → UNCERTAIN (1-5%)       ─────┼──┐        │
-└────────────────────────────────────────────────────────┼──┼────────┘
-                                 ▲                       │  │
-                                 │                       │  │
-                         Handles uncertain                 │  │
-                         from Stage 1                      │  │
-                                                           │  │
-                                 ┌─────────────────────────┘  │
-                                 │                            │
-                                 ▼                            │
-┌─────────────────────────────────────────────────────────────────────┐
-│                     STAGE 3: LLM Classifier                         │
-│                  (Highest Accuracy, Highest Cost)                   │
-├─────────────────────────────────────────────────────────────────────┤
-│ • Call Anthropic Claude 3.5 Haiku (Batch API)                      │
-│ • Simple prompt: "Is this SMS spam? Yes or no"                     │
-│ • Latency: ~200ms per message (batch processing)                   │
-│ • Cost: ~$0.0001 per message (50% batch discount)                  │
-├─────────────────────────────────────────────────────────────────────┤
-│ Decision:                                                           │
-│   Parse "yes" → SPAM                                                │
-│   Parse "no"  → HAM                                                 │
-└────────────────────────────────┬────────────────────────────────────┘
-                                 │
-                         Handles only the
-                         hardest 1-5%
-                                 │
-                                 ▼
-┌─────────────────────────────────────────────────────────────────────┐
-│              OUTPUT: Final Classification + Metadata                │
-├─────────────────────────────────────────────────────────────────────┤
-│ • Label: spam/ham                                                   │
-│ • Confidence scores from each stage used                           │
-│ • Stage that made final decision (1, 2, or 3)                      │
-│ • Total cost incurred                                               │
-│ • Total latency                                                     │
-└─────────────────────────────────────────────────────────────────────┘
+## Package Usage
+
+The modular architecture allows programmatic usage:
+
+```python
+from sms_spam.data.loader import load_spam_dataset
+from sms_spam.data.preprocessing import preprocess_dataset, create_train_test_split
+from sms_spam.classifiers.hybrid import HybridCascadeClassifier
+
+# Load and preprocess data
+data = load_spam_dataset("spam.csv")
+data = preprocess_dataset(data)
+X_train, X_test, y_train, y_test = create_train_test_split(data)
+
+# Load trained cascade
+cascade = HybridCascadeClassifier.load('models/hybrid/')
+
+# Make predictions
+predictions = cascade.predict(X_test_tfidf, test_embeddings)
+
+# Detailed evaluation
+results = cascade.evaluate(X_test_tfidf, test_embeddings, y_test)
 ```
 
-### Performance vs Cost Trade-offs
+## ChromaDB Vector Storage
 
-| Stage    | Coverage | Avg Latency | Cost/1K Msgs | Accuracy |
-|----------|----------|-------------|--------------|----------|
-| Stage 1  | 80-90%   | 1ms         | $0           | ~97%     |
-| Stage 2  | 9-19%    | 10ms        | $0           | ~98%     |
-| Stage 3  | 1-5%     | 200ms       | $0.10        | ~99%+    |
-| **Total**| **100%** | **~5ms**    | **~$0.02**   | **~99%** |
+ChromaDB is used for optional semantic search capabilities:
+- Stores sentence transformer embeddings
+- Enables similarity-based message retrieval
+- Demonstrates vector database usage
+- Not required for classification
 
-**Key Benefits:**
-- **96% cost reduction** vs pure LLM ($0.02 vs $0.50 per 1K messages)
-- **40x faster** average latency (5ms vs 200ms)
-- Maintains **99% accuracy** by using LLM only on hard cases
-- **100% spam recall** through Stage 1 threshold optimization
-- **Graceful degradation**: Can skip Stage 3 if budget constrained
+## Development
 
-## DB Storage
+### Running Tests
+```bash
+pytest tests/
+```
 
-ChromaDB is used as a fast, local storage solution for storing text embeddings for semantic search and classification. 
+### Code Quality
+```bash
+# Format code
+black src/ scripts/ tests/
+
+# Type checking
+mypy src/
+```
+
+## Project Structure Details
+
+**Key Modules:**
+- `data.loader`: Load and validate spam.csv
+- `data.preprocessing`: Text cleaning and train/test split
+- `data.embeddings`: Sentence transformer embeddings
+- `features.tfidf`: TF-IDF feature extraction
+- `classifiers.traditional`: TF-IDF + sklearn models
+- `classifiers.embedding`: Embeddings + sklearn models
+- `classifiers.hybrid`: 2-stage cascade classifier
+- `optimization.optuna_tuner`: Hyperparameter optimization
+- `optimization.threshold_tuner`: Cascade threshold optimization
+- `evaluation.metrics`: Performance metrics
+- `evaluation.visualization`: Plotting utilities
+
+## Configuration
+
+Edit `configs/default.yaml` to customize:
+- TF-IDF parameters
+- Embedding model selection
+- Cascade thresholds
+- Optimization settings
+
+## License
+
+MIT
+
+## Acknowledgments
+
+- SMS Spam Collection dataset
+- Sentence Transformers library
+- Optuna for hyperparameter optimization
+- LazyPredict for quick model comparison
